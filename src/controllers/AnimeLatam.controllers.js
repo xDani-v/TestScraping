@@ -1,44 +1,32 @@
-const puppeteer = require('puppeteer-core');
+const cheerio = require('cheerio');
 const { JSDOM } = require("jsdom");
 const axios = require('axios');
 
 async function getInicio(url) {
-    let browser;
     try {
-        browser = await puppeteer.launch({
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        });
-        const page = await browser.newPage();
-        await page.goto(url, { waitUntil: 'networkidle2' });
+        const response = await axios.get(url);
+        const html = response.data;
+        const $ = cheerio.load(html);
 
-        const episodes = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('a[href^="https://latanime.org/ver/"]')).map(anchor => ({
-                link: anchor.href,
-                image: anchor.querySelector('img')?.src || null,
-                altText: anchor.querySelector('img')?.alt || null,
-                highResImage: anchor.querySelector('img')?.dataset.src || null,
-                title: anchor.querySelector('h2')?.textContent.trim() || null,
-                date: anchor.querySelector('.span-tiempo')?.textContent.trim() || null,
-                language: anchor.querySelector('.info_cap span')?.textContent.trim() || null,
-            }));
-        });
+        const episodes = $('a[href^="https://latanime.org/ver/"]').map((i, element) => {
+            const anchor = $(element);
+            return {
+                link: anchor.attr('href'),
+                image: anchor.find('img').attr('src') || null,
+                altText: anchor.find('img').attr('alt') || null,
+                highResImage: anchor.find('img').attr('data-src') || null,
+                title: anchor.find('h2').text().trim() || null,
+                date: anchor.find('.span-tiempo').text().trim() || null,
+                language: anchor.find('.info_cap span').text().trim() || null,
+            };
+        }).get();
 
         return episodes;
     } catch (error) {
         console.error('Error in getInicio:', error);
-        throw error; // Opcional: Lanza el error para manejo superior
-    } finally {
-        if (browser) {
-            await browser.close();
-        }
+        throw error;
     }
 }
-
-
-
-
 
 
 async function extraerInformacionAnime(nombreAnime) {
