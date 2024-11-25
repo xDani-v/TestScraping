@@ -3,7 +3,10 @@ const { JSDOM } = require("jsdom");
 const axios = require('axios');
 
 async function getInicio(url) {
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable' // Ajusta la ruta según sea necesario
+    });
     const page = await browser.newPage();
 
     // Navega a la página
