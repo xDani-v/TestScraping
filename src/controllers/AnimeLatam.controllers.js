@@ -5,12 +5,12 @@ const axios = require('axios');
 async function getInicio(url) {
     const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable' // Ajusta la ruta según sea necesario
+        executablePath: '/usr/bin/google-chrome' // Ajusta la ruta según sea necesario
     });
     const page = await browser.newPage();
 
     // Navega a la página
-    await page.goto(url);
+    await page.goto(url, { waitUntil: 'networkidle2' });
 
     // Extrae los datos relevantes
     const episodes = await page.evaluate(() => {
