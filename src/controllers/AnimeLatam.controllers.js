@@ -1,40 +1,41 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const { JSDOM } = require("jsdom");
 const axios = require('axios');
 
 async function getInicio(url) {
-    const browser = await puppeteer.launch({
-        args: [
-            '--disable-setuid-sandbox',
-            '--no-sandbox',
-            '--single-process',
-            '--no-zygote'
-        ],
-        executablePath: process.env.NODE_ENV === 'production'
-            ? process.env.PUPPETEER_EXECUTABLE_PATH
-            : puppeteer.executablePath()
-    });
-    const page = await browser.newPage();
+    let browser;
+    try {
+        browser = await puppeteer.launch({
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable',
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: 'networkidle2' });
 
-    // Navega a la página
-    await page.goto(url, { waitUntil: 'networkidle2' });
+        const episodes = await page.evaluate(() => {
+            return Array.from(document.querySelectorAll('a[href^="https://latanime.org/ver/"]')).map(anchor => ({
+                link: anchor.href,
+                image: anchor.querySelector('img')?.src || null,
+                altText: anchor.querySelector('img')?.alt || null,
+                highResImage: anchor.querySelector('img')?.dataset.src || null,
+                title: anchor.querySelector('h2')?.textContent.trim() || null,
+                date: anchor.querySelector('.span-tiempo')?.textContent.trim() || null,
+                language: anchor.querySelector('.info_cap span')?.textContent.trim() || null,
+            }));
+        });
 
-    // Extrae los datos relevantes
-    const episodes = await page.evaluate(() => {
-        return Array.from(document.querySelectorAll('a[href^="https://latanime.org/ver/"]')).map(anchor => ({
-            link: anchor.href, // Enlace al episodio
-            image: anchor.querySelector('img')?.src || null, // Imagen principal
-            altText: anchor.querySelector('img')?.alt || null, // Texto alternativo de la imagen
-            highResImage: anchor.querySelector('img')?.dataset.src || null, // Imagen de alta resolución
-            title: anchor.querySelector('h2')?.textContent.trim() || null, // Título del episodio
-            date: anchor.querySelector('.span-tiempo')?.textContent.trim() || null, // Fecha de lanzamiento
-            language: anchor.querySelector('.info_cap span')?.textContent.trim() || null // Idioma o categoría
-        }));
-    });
-
-    await browser.close();
-    return episodes;
+        return episodes;
+    } catch (error) {
+        console.error('Error in getInicio:', error);
+        throw error; // Opcional: Lanza el error para manejo superior
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
+    }
 }
+
 
 
 
