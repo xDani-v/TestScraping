@@ -1,4 +1,4 @@
- FROM node:16
+FROM node:22.10
 
 # Instalar dependencias necesarias
 RUN apt-get update && apt-get install -y wget gnupg
@@ -9,7 +9,7 @@ RUN apt-get install -y google-chrome-stable
 
 # Establecer variables de entorno para Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome
 
 # Establecer el directorio de trabajo
 WORKDIR /usr/src/app
