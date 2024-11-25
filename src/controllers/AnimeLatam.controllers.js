@@ -38,26 +38,23 @@ async function extraerInformacionAnime(nombreAnime) {
         const response = await axios.get(url);
         const htmlString = response.data;
 
-        // Crear el DOM usando jsdom
-        const dom = new JSDOM(htmlString);
-        const doc = dom.window.document;
+        // Crear el DOM usando cheerio
+        const $ = cheerio.load(htmlString);
 
         // Extraer la información del anime
-        const titulo = doc.querySelector('h2')?.textContent.trim();
-        const descripcion = doc.querySelector('p.opacity-75')?.textContent.trim();
-        const imagen = doc.querySelector('.serieimgficha img')?.src;
-        const generoElements = doc.querySelectorAll('a div.btn');
-        const generos = Array.from(generoElements).map(genero => genero.textContent.trim());
-        const estreno = doc.querySelector('.span-tiempo')?.textContent.trim().replace('Estreno: ', '');
-        const episodios = doc.querySelector('p:nth-child(4)')?.textContent.trim().replace('Episodios: ', '');
+        const titulo = $('h2').text().trim();
+        const descripcion = $('p.opacity-75').text().trim();
+        const imagen = $('.serieimgficha img').attr('src');
+        const generos = $('a div.btn').map((i, el) => $(el).text().trim()).get();
+        const estreno = $('.span-tiempo').text().trim().replace('Estreno: ', '');
+        const episodios = $('p:nth-child(4)').text().trim().replace('Episodios: ', '');
 
         // Extraer los capítulos
         const capitulos = [];
-        const capElements = doc.querySelectorAll('.cap-layout');
-        capElements.forEach(cap => {
-            const tituloCapitulo = cap.textContent.trim();
-            const enlace = cap.closest('a').href;
-            const imagen = cap.querySelector('img')?.src;
+        $('.cap-layout').each((i, el) => {
+            const tituloCapitulo = $(el).text().trim();
+            const enlace = $(el).closest('a').attr('href');
+            const imagen = $(el).find('img').attr('src');
             capitulos.push({ tituloCapitulo, enlace, imagen });
         });
 
@@ -74,6 +71,7 @@ async function extraerInformacionAnime(nombreAnime) {
 
     } catch (error) {
         console.error("Error al obtener la información del anime:", error);
+        throw error;
     }
 }
 
@@ -86,19 +84,18 @@ async function extraerInformacionBusquedaAnime(nombreAnime) {
         const response = await axios.get(url);
         const htmlString = response.data;
 
-        // Crear el DOM usando jsdom
-        const dom = new JSDOM(htmlString);
-        const doc = dom.window.document;
+        // Crear el DOM usando cheerio
+        const $ = cheerio.load(htmlString);
 
         const animes = [];
-        const elementosAnime = doc.querySelectorAll('.row > .col-md-4.col-lg-3.col-xl-2.col-6.my-3');
+        const elementosAnime = $('.row > .col-md-4.col-lg-3.col-xl-2.col-6.my-3');
 
-        elementosAnime.forEach(elemento => {
-            const titulo = elemento.querySelector('h3.my-1')?.textContent.trim();
-            const descripcion = elemento.querySelector('span.opacity-75')?.textContent.trim();
-            const estreno = elemento.querySelector('span[style="color: #ffc119;"]')?.textContent.trim();
-            const imagen = elemento.querySelector('img.img-fluid2')?.src;
-            const enlace = elemento.querySelector('a')?.href;
+        elementosAnime.each((i, elemento) => {
+            const titulo = $(elemento).find('h3.my-1').text().trim();
+            const descripcion = $(elemento).find('span.opacity-75').text().trim();
+            const estreno = $(elemento).find('span[style="color: #ffc119;"]').text().trim();
+            const imagen = $(elemento).find('img.img-fluid2').attr('src');
+            const enlace = $(elemento).find('a').attr('href');
 
             animes.push({
                 titulo,
@@ -113,32 +110,36 @@ async function extraerInformacionBusquedaAnime(nombreAnime) {
 
     } catch (error) {
         console.error("Error al obtener los resultados de búsqueda del anime:", error);
+        throw error;
     }
 }
 
-
 async function extraerReproductores(url) {
+    try {
+        const response = await axios.get(url);
+        const htmlString = response.data;
 
-    const response = await axios.get(url);
-    const htmlString = response.data;
+        // Crear el DOM usando cheerio
+        const $ = cheerio.load(htmlString);
 
-    const dom = new JSDOM(htmlString);
-    const doc = dom.window.document;
+        const reproductores = [];
+        const elementosReproductor = $('.cap_repro .play-video.repro-item.cap');
 
-    const reproductores = [];
-    const elementosReproductor = doc.querySelectorAll('.cap_repro .play-video.repro-item.cap');
+        elementosReproductor.each((i, elemento) => {
+            const nombre = $(elemento).text().trim();
+            const enlace = decodificarEnlace($(elemento).attr('data-player'));
 
-    elementosReproductor.forEach(elemento => {
-        const nombre = elemento.textContent.trim();
-        const enlace = decodificarEnlace(elemento.getAttribute('data-player'));
-
-        reproductores.push({
-            nombre,
-            enlace
+            reproductores.push({
+                nombre,
+                enlace
+            });
         });
-    });
 
-    return reproductores;
+        return reproductores;
+    } catch (error) {
+        console.error("Error al obtener los reproductores:", error);
+        throw error;
+    }
 }
 
  
